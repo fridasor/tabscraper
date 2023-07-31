@@ -1,0 +1,9 @@
+# macos:
+.DS_Store
+.TemporaryItems
+
+# python:
+__pycache__/
+
+build/
+*.log
