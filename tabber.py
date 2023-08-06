@@ -9,7 +9,8 @@ def find_pagination(srch):
     '''Send GET request for a search.
 
     Returns:
-        String containing the search results from UG (written in JSON)
+        String containing the search results from UG (partly written in JSON)
+        ^fix this
 
     '''
 
