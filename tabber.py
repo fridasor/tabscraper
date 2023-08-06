@@ -114,7 +114,7 @@ def choose_tab(tabdict, ask_input = True, with_song_titles = True):
             print('')
     
     if ask_input:
-        # ask user to select a search result:
+        # Ask user to select a search result:
         index = input('> ')
         index = int(index)
 
@@ -123,7 +123,7 @@ def choose_tab(tabdict, ask_input = True, with_song_titles = True):
     
         return tabdict[index]
     else:
-        # return the first search result (which is usually the best one):
+        # Return the first search result (which is usually the best one):
         return tabdict[0]
 
 def dict_from_search(srch):
@@ -157,33 +157,38 @@ def url_from_dict(d):
 
 
 def fetch_tab(url):
+    ''' 
+    Args:
+        url: Url of tab on UG
 
+    Returns:
+        The text containing the tabs from the URL
+    '''
+
+    # Scrape:
     page = requests.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
 
     res = soup.body.find('div', class_='js-store')
-
     res = str(res)
-    res_string = str(res)
 
+    # Use regex to find start and end of tab text:
     T_start = re.search(r'(?<=wiki_tab)[^*]', res) # to match wiki_tab in the string
     T_end = re.search(r'(?<=revision_id)[^*]', res) # to match revision_id in the string
 
-    # indices fofr 
+    # Corresponding indices:
     idx = [T_start.span()[0], T_end.span()[0]]
 
+    # Resulting plain text (not yet readable):
     text = res[idx[0]:idx[1]]
 
-    # replace:
-    # ----------
-
+    # Clean up the plain text (very messy):
     if 'chords' not in url:
 
         for_replacing = [
             '":{"content":"',
             '","revision_id'
         ]
-
     elif 'chords' in url:
 
         for_replacing = [
@@ -198,6 +203,7 @@ def fetch_tab(url):
 
 
 def prettify_tabs(text):
+    '''Make text from UG into readable plain text'''
     text = text.replace('\\r', '')
     text = text.replace('\\n', '\n')
 
@@ -235,13 +241,13 @@ def display_tabs(d):
     Args:
         d: dictionary for a chosen search result
     '''
-    text = fetch_tab(url_from_dict(d))
-    text = prettify_tabs(text)
+    text = fetch_tab(url_from_dict(d))  # Get tab as text
+    text = prettify_tabs(text)          # Make text readable
 
     print(text)
 
 
-# join command line arguments to form a search:
+# Join command line arguments to form a search:
 srch = sys.argv[1:]
 for i in range(len(srch) - 1): srch[i] = srch[i] + ' '
 srch = ''.join(srch)
