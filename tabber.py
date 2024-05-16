@@ -80,6 +80,7 @@ def create_dict(tabstring):
         tabstring_i = '{' + tabstring_i[:-2]
 
         tabstring_i = tabstring_i.replace('null', 'None')
+        tabstring_i = tabstring_i.replace('true', 'True')
 
         # Check whether the tabstring is relevant/interesting:
         if not relevant(tabstring_i):
