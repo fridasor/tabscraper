@@ -81,6 +81,7 @@ def create_dict(tabstring):
 
         tabstring_i = tabstring_i.replace('null', 'None')
         tabstring_i = tabstring_i.replace('true', 'True')
+        tabstring_i = tabstring_i.replace('false', 'False')
 
         # Check whether the tabstring is relevant/interesting:
         if not relevant(tabstring_i):
