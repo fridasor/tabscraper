@@ -228,11 +228,11 @@ def write_tab_to_file(d, custom_filename=False):
     text = prettify_tabs(text)
 
     if custom_filename:
-        filename = custom_filename
+        filename = custom_filename + '.txt'
     else:
         filename = f"{d['artist_name']}_{d['song_name']}_{d['type']}_v{d['version']}.txt"
     
-    print(f'Writing to file {filename}')
+    print(f'\n\n\nWriting to file {filename}.txt')
 
     with open(filename, 'w') as outfile:
         outfile.write(text)
@@ -251,8 +251,26 @@ def display_tabs(d):
 
 # Join command line arguments to form a search:
 srch = sys.argv[1:]
-for i in range(len(srch) - 1): srch[i] = srch[i] + ' '
-srch = ''.join(srch)
+srch = ' '.join(srch)
 
-d = dict_from_search(srch)
-display_tabs(d)
+
+# Check if flag:
+if '-w' in srch:
+    p = re.compile('-w')
+    beg, en = p.search(srch).span()
+
+    if en != len(srch):
+        filename = srch[en+1:]  # Custom filename
+    else:
+        filename = False
+
+    file = True
+    srch = srch[:beg-1] # Remove flag from search
+else: 
+    file = False
+
+    
+d = dict_from_search(srch)  # Print table of srch results
+display_tabs(d)             # Display chosen tab
+
+if file: write_tab_to_file(d, filename)

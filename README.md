@@ -9,8 +9,13 @@ Very ugly spagetti code, but it works, and you can stay away from all the flashi
 ```
 python tabber.py blah blah
 ```
+or, to write the tab to a text file `filename.txt`,
+```
+python tabber.py blah blah -w filename
+```
+where a suited filename is chosen if filename is omitted.
 
-Ex `python tabber.py queens of the stone age no one knows`
+Ex `python tabber.py queens of the stone age no one knows -w`
 
 
 ## To do:
