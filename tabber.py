@@ -16,7 +16,6 @@ def find_pagination(srch):
 
     srch = srch.replace(' ', '%20')
 
-    print(srch)
     url = f'https://www.ultimate-guitar.com/search.php?search_type=title&value={srch}'
 
     page = requests.get(url)
@@ -174,6 +173,10 @@ def fetch_tab(url):
     res = soup.body.find('div', class_='js-store')
     res = str(res)
 
+
+    capo_pattern = re.escape("capo&quot;:") + r'(\d+),'
+    capo_match = re.search(capo_pattern, res)
+
     # Use regex to find start and end of tab text:
     T_start = re.search(r'(?<=wiki_tab)[^*]', res) # to match wiki_tab in the string
     T_end = re.search(r'(?<=revision_id)[^*]', res) # to match revision_id in the string
@@ -200,6 +203,9 @@ def fetch_tab(url):
 
     for s in for_replacing:
         text = text.replace(s, '')
+
+    if capo_match:
+        text = f"Capo at fret {capo_match.group(1)}\n\n" + text
 
     return text
 

@@ -19,7 +19,6 @@ Ex `python tabber.py queens of the stone age no one knows -w`
 
 
 ## To do:
-* Somehow add info abt capo and tuning
+* Add info about tuning
 * Comments
-* Bass+ukulele players
-* +++++++++
+* Bass + ukulele players
