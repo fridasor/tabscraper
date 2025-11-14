@@ -18,6 +18,8 @@ where a suited filename is chosen if filename is omitted.
 Ex `python tabber.py queens of the stone age no one knows -w`
 
 
+![Animation displaying procedure for fetching a tab/chord](assets/tabscraper_demo.png)
+
 ## To do:
 * Add info about tuning
 * Comments
