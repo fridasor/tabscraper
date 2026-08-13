@@ -24,7 +24,6 @@ def find_pagination(srch):
     res = soup.find_all('div')[-1]
 
     s = str(res)
-    # tabs = re.search(r'(?<="results":)[^*]*', s)
 
     tabs = re.search(r'(?<=results)[^*]*', s)
 
@@ -40,23 +39,28 @@ def find_pagination(srch):
 
 
 def create_dict(tabstring):
-    ''' Create dictionary containing info about a tab.
+    ''' Create dictionaries containing info about the search results that correspond to relevant tabs/chords.
 
     Args:
+        tabstring: string returned from find_pagination
         
     Returns:
-        List of dictionaries st. each dictionary
-            contains info about a search result from UG
+        list of python dictionaries st. each dictionary contains info about a result in tabstring
     '''
 
     def relevant(s, irrelevant_types = ['Bass Tabs', 'Video', 'Pro', 'Ukulele']):
         '''
         Args:
-            Types that are not relevant/interesting/allowed
+            s: string corresponding to regex match, see below
+            irrelevant_types: types that are not relevant/interesting/allowed
         
         Returns:
             False if the tabstring is irrelevant, True if relevant
         '''
+        # return False for s that do not correspond to a valid chord or tab:
+        if "song_id" not in s: return False
+
+        # return False for s that are in irrelevant_types:
         for t in irrelevant_types:
             if t in s:
                 return False
@@ -64,7 +68,6 @@ def create_dict(tabstring):
         return True
 
     tab = re.finditer(r'"id":', tabstring)
-    taburl = re.finditer(r'"tab_url":', tabstring)
 
     idx = []
     d = []
@@ -72,23 +75,29 @@ def create_dict(tabstring):
     for t in tab:
         idx0 = t.span()[0]
         idx.append(idx0)
-    
-    for i, index in enumerate(idx[:-1]):
-        tabstring_i = tabstring[index:idx[i+1]]
+
+    # the following loops through the starting indices (denoted index) of each result (denoted i) in tab,
+    # parses the string corresponding to result i so that it becomes a valid python dictionary
+    # (with special treatment for the parsing of the endpoint),
+    # asserts whether the python dictionary corresponds to an actual tab/chord result AND is not an "irrelevant type" (see above),
+    # and adds valid & relevant dictionaries to the list d
+    for i, index in enumerate(idx):
+        tabstring_i = tabstring[index:] if i == len(idx) - 1 else tabstring[index:idx[i+1]]
 
         tabstring_i = '{' + tabstring_i[:-2]
+        if i == len(idx) - 1: tabstring_i = tabstring_i + '}'
 
         tabstring_i = tabstring_i.replace('null', 'None')
         tabstring_i = tabstring_i.replace('true', 'True')
         tabstring_i = tabstring_i.replace('false', 'False')
 
-        # Check whether the tabstring is relevant/interesting:
+        # check whether the tabstring is relevant/interesting:
         if not relevant(tabstring_i):
             continue
 
         try:
             tab_d = eval(tabstring_i)
-        except SyntaxError:     # Error that I refuse to attempt tackling
+        except SyntaxError:     # error that I refuse to attempt tackling
             continue
 
         d.append(tab_d)
@@ -115,7 +124,7 @@ def choose_tab(tabdict, ask_input = True, with_song_titles = True):
             print('')
     
     if ask_input:
-        # Ask user to select a search result:
+        # ask user to select a search result:
         index = input('> ')
         index = int(index)
 
@@ -124,7 +133,7 @@ def choose_tab(tabdict, ask_input = True, with_song_titles = True):
     
         return tabdict[index]
     else:
-        # Return the first search result (which is usually the best one):
+        # return the first search result (which is usually the best one):
         return tabdict[0]
 
 def dict_from_search(srch):
@@ -166,7 +175,7 @@ def fetch_tab(url):
         The text containing the tabs from the URL
     '''
 
-    # Scrape:
+    # scrape:
     page = requests.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
 
@@ -177,17 +186,17 @@ def fetch_tab(url):
     capo_pattern = re.escape("capo&quot;:") + r'(\d+),'
     capo_match = re.search(capo_pattern, res)
 
-    # Use regex to find start and end of tab text:
+    # use regex to find start and end of tab text:
     T_start = re.search(r'(?<=wiki_tab)[^*]', res) # to match wiki_tab in the string
     T_end = re.search(r'(?<=revision_id)[^*]', res) # to match revision_id in the string
 
-    # Corresponding indices:
+    # corresponding indices:
     idx = [T_start.span()[0], T_end.span()[0]]
 
-    # Resulting plain text (not yet readable):
+    # resulting plain text (not yet readable):
     text = res[idx[0]:idx[1]]
 
-    # Clean up the plain text (very messy):
+    # clean up the plain text (very messy):
     if 'chords' not in url:
 
         for_replacing = [
@@ -249,34 +258,35 @@ def display_tabs(d):
     Args:
         d: dictionary for a chosen search result
     '''
-    text = fetch_tab(url_from_dict(d))  # Get tab as text
-    text = prettify_tabs(text)          # Make text readable
+    text = fetch_tab(url_from_dict(d))  # get tab as text
+    text = prettify_tabs(text)          # make text readable
 
     print(text)
 
 
-# Join command line arguments to form a search:
-srch = sys.argv[1:]
-srch = ' '.join(srch)
+if __name__ == '__main__':
+    # join command line arguments to form a search:
+    srch = sys.argv[1:]
+    srch = ' '.join(srch)
 
 
-# Check if flag:
-if '-w' in srch:
-    p = re.compile('-w')
-    beg, en = p.search(srch).span()
+    # check if flag is supplied:
+    if '-w' in srch:
+        p = re.compile('-w')
+        beg, en = p.search(srch).span()
 
-    if en != len(srch):
-        filename = srch[en+1:]  # Custom filename
-    else:
-        filename = False
+        if en != len(srch):
+            filename = srch[en+1:]  # custom filename
+        else:
+            filename = False
 
-    file = True
-    srch = srch[:beg-1] # Remove flag from search
-else: 
-    file = False
+        file = True
+        srch = srch[:beg-1] # remove flag from search
+    else: 
+        file = False
 
-    
-d = dict_from_search(srch)  # Print table of srch results
-display_tabs(d)             # Display chosen tab
+        
+    d = dict_from_search(srch)  # print table of srch results
+    display_tabs(d)             # display chosen tab
 
-if file: write_tab_to_file(d, filename)
+    if file: write_tab_to_file(d, filename)
