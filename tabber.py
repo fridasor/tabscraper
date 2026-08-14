@@ -10,8 +10,6 @@ def find_pagination(srch):
 
     Returns:
         String containing the search results from UG (partly written in JSON)
-        ^fix this
-
     '''
 
     srch = srch.replace(' ', '%20')
@@ -21,15 +19,15 @@ def find_pagination(srch):
     page = requests.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
 
-    res = soup.find_all('div')[-1]
+    res = soup.find_all("div")[-1]
 
     s = str(res)
 
     tabs = re.search(r'(?<=results)[^*]*', s)
 
-    s = s.replace('&quot;', '"')
+    s = s.replace("&quot;", '"')
 
-    end_keyword = 'pagination'
+    end_keyword = "pagination"
     search_end = re.search(f',"{end_keyword}', s)
     end_idx = search_end.span()[0]
 
@@ -48,7 +46,7 @@ def create_dict(tabstring):
         list of python dictionaries st. each dictionary contains info about a result in tabstring
     '''
 
-    def relevant(s, irrelevant_types = ['Bass Tabs', 'Video', 'Pro', 'Ukulele']):
+    def relevant(s, irrelevant_types = ["Bass Tabs", "Video", "Pro", "Ukulele"]):
         '''
         Args:
             s: string corresponding to regex match, see below
@@ -84,8 +82,8 @@ def create_dict(tabstring):
     for i, index in enumerate(idx):
         tabstring_i = tabstring[index:] if i == len(idx) - 1 else tabstring[index:idx[i+1]]
 
-        tabstring_i = '{' + tabstring_i[:-2]
-        if i == len(idx) - 1: tabstring_i = tabstring_i + '}'
+        tabstring_i = "{" + tabstring_i[:-2]
+        if i == len(idx) - 1: tabstring_i = tabstring_i + "}"
 
         tabstring_i = tabstring_i.replace('null', 'None')
         tabstring_i = tabstring_i.replace('true', 'True')
@@ -104,12 +102,11 @@ def create_dict(tabstring):
 
     return d
 
-def choose_tab(tabdict, ask_input = True, with_song_titles = True):
+def choose_tab(tabdict, with_song_titles = True):
     ''' Print the search results at Ultimate Guitar as a table.
 
     Args:
-        tabdict: List of tab dictionaries
-        ask_input: If True, the user selects a tab. If False, the 0th one is selected.
+        tabdict: list of tab dictionaries
     
     Returns:
         Dictionary containing info about chosen tab (ie. one of the tabdict elements)
@@ -122,26 +119,23 @@ def choose_tab(tabdict, ask_input = True, with_song_titles = True):
             print(f'{d["artist_name"]:30} {d["song_name"]}')
         else:
             print('')
-    
-    if ask_input:
-        # ask user to select a search result:
-        index = input('> ')
-        index = int(index)
 
-        if index > len(tabdict):
-            raise IndexError('Not a valid index!')
-    
-        return tabdict[index]
-    else:
-        # return the first search result (which is usually the best one):
-        return tabdict[0]
+    # ask user to select a search result:
+    index = input("> ")
+    index = int(index)
 
-def dict_from_search(srch):
+    if index > len(tabdict):
+        raise IndexError("Not a valid index.")
+    
+    return tabdict[index]
+
+def dict_from_search(srch, chosen_index = None):
     ''' Print the search results from Ultimate Guitar as a table and ask
     user to select between the results.
 
     Args:
-        serch: A search (as string) for Ultimate Guitar GET request
+        srch: a search (as string) for Ultimate Guitar GET request
+        chosen_index: either None or integer-valued. if False, the user selects a result index. if integer-valued, corresponding index is automatically chosen
 
     Returns:
         Dictionary for chosen search result
@@ -150,7 +144,10 @@ def dict_from_search(srch):
 
     tabs = find_pagination(srch)
     d = create_dict(tabs)
-    d = choose_tab(d, ask_input = True)
+    if chosen_index:
+        d = d[int(chosen_index)]
+    else:
+        d = choose_tab(d)
 
     return d
 
@@ -169,7 +166,7 @@ def url_from_dict(d):
 def fetch_tab(url):
     ''' 
     Args:
-        url: Url of tab on UG
+        url: url of tab on UG
 
     Returns:
         The text containing the tabs from the URL
@@ -179,59 +176,65 @@ def fetch_tab(url):
     page = requests.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
 
-    res = soup.body.find('div', class_='js-store')
+    res = soup.body.find("div", class_="js-store")
     res = str(res)
-
 
     capo_pattern = re.escape("capo&quot;:") + r'(\d+),'
     capo_match = re.search(capo_pattern, res)
 
+    # obtain tuning:
+    tuning_pattern = re.escape("tuning&quot;:") + r'\{[^\}]*'
+    tuning_match = re.search(tuning_pattern, res)
+    if tuning_match:
+        tuning_str = tuning_match.group(0)
+        tuning_idx = tuning_str.find("&quot;value&quot;:&quot;") + len("&quot;value&quot;:&quot;")
+        tuning = tuning_str[tuning_idx:]
+        tuning = tuning[:tuning.find("&")]
+    else:
+        tuning = "E A D G B E"
+
     # use regex to find start and end of tab text:
-    T_start = re.search(r'(?<=wiki_tab)[^*]', res) # to match wiki_tab in the string
-    T_end = re.search(r'(?<=revision_id)[^*]', res) # to match revision_id in the string
+    t_start = re.search(r'(?<=wiki_tab)[^*]', res) # to match wiki_tab in the string
+    t_end = re.search(r'(?<=revision_id)[^*]', res) # to match revision_id in the string
 
     # corresponding indices:
-    idx = [T_start.span()[0], T_end.span()[0]]
+    idx = [t_start.span()[0], t_end.span()[0]]
 
     # resulting plain text (not yet readable):
     text = res[idx[0]:idx[1]]
 
-    # clean up the plain text (very messy):
-    if 'chords' not in url:
-
-        for_replacing = [
-            '":{"content":"',
-            '","revision_id'
-        ]
-    elif 'chords' in url:
-
-        for_replacing = [
-            '&quot;:{&quot;content&quot;:&quot;',
-            '&quot;,&quot;revision_id'
-        ]
+    # clean up the plain text:
+    for_replacing = [
+        '&quot;:{&quot;content&quot;:&quot;',
+        '&quot;,&quot;revision_id',
+        '":{"content":"',
+        '","revision_id'
+    ]
 
     for s in for_replacing:
         text = text.replace(s, '')
 
     if capo_match:
-        text = f"Capo at fret {capo_match.group(1)}\n\n" + text
+        text = f"Capo: {capo_match.group(1)}\n\n" + text
+
+    if tuning != "E A D G B E":
+        text = f"Tuning: {tuning}\n" + text
 
     return text
 
 
 def prettify_tabs(text):
     '''Make text from UG into readable plain text'''
-    text = text.replace('\\r', '')
-    text = text.replace('\\n', '\n')
+    text = text.replace("\\r", "")
+    text = text.replace("\\n", "\n")
 
-    for_replacing = ['[tab]', '[/tab]', '[ch]', '[/ch]']
+    for_replacing = ["[tab]", "[/tab]", "[ch]", "[/ch]"]
     for s in for_replacing:
-        text = text.replace(s, '')
+        text = text.replace(s, "")
 
     return text
 
-
-def write_tab_to_file(d, custom_filename=False):
+def write_tab_to_file(d, custom_filename = False):
     '''Write tab to text file.
     
     Args:
@@ -243,13 +246,13 @@ def write_tab_to_file(d, custom_filename=False):
     text = prettify_tabs(text)
 
     if custom_filename:
-        filename = custom_filename + '.txt'
+        filename = custom_filename + ".txt"
     else:
-        filename = f"{d['artist_name']}_{d['song_name']}_{d['type']}_v{d['version']}.txt"
+        filename = f'{d["artist_name"]}_{d["song_name"]}_{d["type"]}_v{d["version"]}.txt'
     
-    print(f'\n\n\nWriting to file {filename}.txt')
+    print(f"- - -\n\n\nWriting to file {filename}")
 
-    with open(filename, 'w') as outfile:
+    with open(filename, "w") as outfile:
         outfile.write(text)
 
 def display_tabs(d):
@@ -264,29 +267,45 @@ def display_tabs(d):
     print(text)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # join command line arguments to form a search:
-    srch = sys.argv[1:]
-    srch = ' '.join(srch)
+    srch_raw = sys.argv[1:]
+    srch = srch_raw
 
+    if "-w" in srch_raw:
+        srch = srch_raw[0:srch_raw.index("-w")]
+    if "-s" in srch:
+        srch = srch[0:srch.index("-s")]
 
-    # check if flag is supplied:
-    if '-w' in srch:
-        p = re.compile('-w')
-        beg, en = p.search(srch).span()
+    # messy code for fetching flags and arguments thereof:
+    
+    srch = " ".join(srch)
 
-        if en != len(srch):
-            filename = srch[en+1:]  # custom filename
+    flags = ["-w", "-s"]
+    flag_provided = []
+    flags_result = []
+
+    # the following assumes the arguments accompanying the 
+    # flags are one-worded (which is reasonable for filenames and integers):
+    for f in flags:
+        if f in srch_raw:
+            flag_provided.append(True)
+
+            idx = srch_raw.index(f)
+            argument_provided = idx + 1 < len(srch_raw)
+            if argument_provided:
+                argument_provided = srch_raw[idx + 1] not in flags
+
+            if argument_provided:
+                flags_result.append(srch_raw[idx + 1])
+            else:
+                flags_result.append(None)
         else:
-            filename = False
-
-        file = True
-        srch = srch[:beg-1] # remove flag from search
-    else: 
-        file = False
+            flag_provided.append(False)
+            flags_result.append(None)
 
         
-    d = dict_from_search(srch)  # print table of srch results
+    d = dict_from_search(srch, chosen_index = flags_result[1])  # print table of srch results
     display_tabs(d)             # display chosen tab
 
-    if file: write_tab_to_file(d, filename)
+    if flag_provided[0]: write_tab_to_file(d, custom_filename = flags_result[0])
