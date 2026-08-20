@@ -60,8 +60,7 @@ def create_dict(tabstring):
 
         # return False for s that are in irrelevant_types:
         for t in irrelevant_types:
-            if t in s:
-                return False
+            if f'type":"{t}' in s: return False
         
         return True
 
@@ -97,6 +96,8 @@ def create_dict(tabstring):
             tab_d = eval(tabstring_i)
         except SyntaxError:     # error that I refuse to attempt tackling
             continue
+
+        if type(tab_d) == tuple: tab_d = tab_d[0] # fixes errors for some pathological cases (ex. modest mouse's walking and running)
 
         d.append(tab_d)
 
