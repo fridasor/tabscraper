@@ -205,14 +205,15 @@ def fetch_tab(url):
     text = res[idx[0]:idx[1]]
 
     # clean up the plain text:
-    for_replacing = [
+    for_removing = [
         '&quot;:{&quot;content&quot;:&quot;',
         '&quot;,&quot;revision_id',
         '":{"content":"',
-        '","revision_id'
+        '","revision_id',
+        'amp;'
     ]
 
-    for s in for_replacing:
+    for s in for_removing:
         text = text.replace(s, '')
 
     if capo_match:
@@ -226,11 +227,17 @@ def fetch_tab(url):
 
 def prettify_tabs(text):
     '''Make text from UG into readable plain text'''
-    text = text.replace("\\r", "")
-    text = text.replace("\\n", "\n")
+    replacement_tuples = (
+        ("\\r", ""),
+        ("\\n", "\n"),
+        ("&lt;", "<"),
+        ("&gt;", ">")
+    )
+    for old, new in replacement_tuples:
+        text = text.replace(old, new)
 
-    for_replacing = ["[tab]", "[/tab]", "[ch]", "[/ch]"]
-    for s in for_replacing:
+    for_removing = ["[tab]", "[/tab]", "[ch]", "[/ch]"]
+    for s in for_removing:
         text = text.replace(s, "")
 
     return text
